@@ -20,7 +20,7 @@ class DatabaseService {
     final dbPath = await getDatabasesPath();
     return openDatabase(
       join(dbPath, 'hero_battle.db'),
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE decks (
@@ -53,6 +53,25 @@ class DatabaseService {
         if (oldVersion < 3) {
           await db.execute('ALTER TABLE battle_history ADD COLUMN player_deck_json TEXT');
           await db.execute('ALTER TABLE battle_history ADD COLUMN ai_deck_json TEXT');
+        }
+        if (oldVersion < 4) {
+          // Repair migration: Ensures all required columns exist regardless of previous upgrade path.
+          final tableInfo = await db.rawQuery('PRAGMA table_info(battle_history)');
+          final columns = tableInfo.map((e) => e['name'] as String).toSet();
+          
+          final requiredColumns = {
+            'ai_name': 'TEXT',
+            'player_deck_images': 'TEXT',
+            'ai_deck_images': 'TEXT',
+            'player_deck_json': 'TEXT',
+            'ai_deck_json': 'TEXT',
+          };
+
+          for (var entry in requiredColumns.entries) {
+            if (!columns.contains(entry.key)) {
+              await db.execute('ALTER TABLE battle_history ADD COLUMN ${entry.key} ${entry.value}');
+            }
+          }
         }
       },
     );

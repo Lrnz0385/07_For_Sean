@@ -19,6 +19,15 @@ class _DeckBuilderScreenState extends State<DeckBuilderScreen> {
   int? _activeFilter; // 1-6 cost filter
 
   @override
+  void initState() {
+    super.initState();
+    // Ensures deck is fresh every time the builder is entered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DeckProvider>().clearDeck();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final deckProvider = context.watch<DeckProvider>();
 
